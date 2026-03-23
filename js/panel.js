@@ -5,9 +5,6 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
 // Usuario
 const usuario = JSON.parse(localStorage.getItem('usuario'))
-
-console.log("Usuario en localStorage:", usuario)
-
 if (!usuario) window.location.href = '../index.html'
 document.getElementById('bienvenida').textContent = `Bienvenido ${usuario.usuario}`
 
@@ -16,7 +13,6 @@ document.getElementById('logout').addEventListener('click', () => {
     localStorage.removeItem('usuario')
     window.location.href = '../index.html'
 })
-
 document.getElementById('cambiar-pass')?.addEventListener('click', () => {
     window.location.href = 'cambiarclave.html'
 })
@@ -24,14 +20,8 @@ document.getElementById('cambiar-pass')?.addEventListener('click', () => {
 // Modal
 const modal = document.getElementById('modal-reserva')
 const cerrarModal = document.getElementById('cerrar-modal')
-
-cerrarModal.addEventListener('click', () => {
-    modal.style.display = 'none'
-})
-
-window.addEventListener('click', e => {
-    if (e.target === modal) modal.style.display = 'none'
-})
+cerrarModal.addEventListener('click', () => { modal.style.display = 'none' })
+window.addEventListener('click', e => { if (e.target === modal) modal.style.display = 'none' })
 
 // Opciones
 const variedades = ['Variedad Kush', 'Variedad Haze']
@@ -41,17 +31,25 @@ const horarios = ['12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00']
 const selectVariedad = document.getElementById('variedad')
 const selectCantidad = document.getElementById('dosis')
 const selectHorario = document.getElementById('horario')
+const inputFecha = document.getElementById('fecha')
 const ulReservas = document.getElementById('reservas-ul')
+
+// Bloquear fechas pasadas
+const hoy = new Date().toISOString().split("T")[0]
+inputFecha.min = hoy
+inputFecha.value = hoy // 🔥 Inicializa fecha en el día actual
+
+// Carrito temporal
+let carritoTemporal = {
+    fecha: inputFecha.value // 🔥 Inicializamos con la fecha de hoy
+}
 
 // Llenar selects
 variedades.forEach(v => selectVariedad.appendChild(new Option(v, v)))
 cantidades.forEach(c => selectCantidad.appendChild(new Option(c, c)))
 horarios.forEach(h => selectHorario.appendChild(new Option(h, h)))
 
-// Carrito temporal
-let carritoTemporal = {}
-
-// Crear carrito visual
+// Carrito visual
 const carritoVisual = document.createElement('div')
 carritoVisual.id = 'carrito-visual'
 carritoVisual.style.cssText = `
@@ -64,96 +62,81 @@ box-shadow:0 0 20px rgba(0,128,0,0.4);
 color:#6eff6e;
 font-size:0.95rem;
 `
-
 ulReservas.parentNode.insertBefore(carritoVisual, ulReservas)
 
-// Verificar cupos
-async function verificarCupos(horario){
+// 🔥 Verificar cupos por fecha y horario
+async function verificarCupos(fecha, horario){
     const { data, error } = await supabase
-    .from('reservas')
-    .select('*')
-    .eq('horario', horario)
-
+        .from('reservas')
+        .select('*')
+        .eq('fecha', fecha)
+        .eq('horario', horario)
     if(error) throw error
     return data.length
 }
 
 // Guardar reserva
 document.getElementById('form-reserva').addEventListener('submit', async e => {
-
     e.preventDefault()
 
-    if(!carritoTemporal.variedad || !carritoTemporal.dosis || !carritoTemporal.horario){
+    const { fecha, variedad, dosis, horario } = carritoTemporal
+
+    if(!fecha || !variedad || !dosis || !horario){
         alert('Completa todos los campos antes de reservar')
         return
     }
 
     try{
-
         // verificar si ya tiene reserva
         const { data: reservasUsuario } = await supabase
-        .from('reservas')
-        .select('*')
-        .eq('usuario', usuario.usuario)
+            .from('reservas')
+            .select('*')
+            .eq('usuario', usuario.usuario)
 
         if(reservasUsuario && reservasUsuario.length > 0){
             alert('Ya tienes una reserva activa. Modifícala o cancélala.')
             return
         }
 
-        const cupos = await verificarCupos(carritoTemporal.horario)
-
+        const cupos = await verificarCupos(fecha, horario)
         if(cupos >= 4){
             alert('Horario completo')
             return
         }
 
         const { error } = await supabase
-        .from('reservas')
-        .insert([{ usuario: usuario.usuario, ...carritoTemporal }])
-
+            .from('reservas')
+            .insert([{ usuario: usuario.usuario, ...carritoTemporal }])
         if(error) throw error
 
-        // limpiar
-        carritoTemporal = {}
+        // limpiar carrito temporal y selects
+        carritoTemporal = { fecha: inputFecha.value } // 🔥 mantiene la fecha actual
         selectVariedad.value = ''
         selectCantidad.value = ''
         selectHorario.value = ''
 
         modal.style.display = 'flex'
+        setTimeout(() => { cargarReservaUsuario() }, 300)
 
-        setTimeout(() => {
-            cargarReservaUsuario()
-        }, 300)
-
-    }catch(err){
+    } catch(err){
         console.error("Error al guardar:", err)
         alert('Error al guardar la reserva')
     }
-
 })
 
 // Mostrar reserva
 async function cargarReservaUsuario(){
-
     try{
-
         const { data, error } = await supabase
-        .from('reservas')
-        .select('*')
-        .eq('usuario', usuario.usuario)
-
+            .from('reservas')
+            .select('*')
+            .eq('usuario', usuario.usuario)
         if(error) throw error
 
         ulReservas.innerHTML = ''
 
         if(data.length === 0){
-
-            carritoVisual.innerHTML = `
-            <strong>Mis reservas</strong><br><br>
-            No tienes reservas activas
-            `
-
+            carritoVisual.innerHTML = `<strong>Mis reservas</strong><br><br>No tienes reservas activas`
             return
         }
 
@@ -161,88 +144,62 @@ async function cargarReservaUsuario(){
 
         carritoVisual.innerHTML = `
         <strong>Tu reserva activa</strong><br><br>
-
+        Fecha: ${r.fecha}<br>
         Variedad: ${r.variedad}<br>
         Dosis: ${r.dosis}g<br>
         Horario: ${r.horario}<br><br>
-
         <button id="editar-reserva">Modificar reserva</button>
         <button id="cancelar-reserva">Cancelar reserva</button>
         `
 
-        // MODIFICAR (borrar + nueva)
+        // MODIFICAR
         document.getElementById('editar-reserva').addEventListener('click', async ()=>{
-
             if(!confirm('Vas a modificar tu reserva actual')) return
-
             try{
-
                 const { error } = await supabase
-                .from('reservas')
-                .delete()
-                .eq('id', r.id)
-
+                    .from('reservas')
+                    .delete()
+                    .eq('id', r.id)
                 if(error) throw error
-
-                alert("Actualiza tu reserva")
-
-                carritoTemporal = {}
-
-                selectVariedad.value = ''
-                selectCantidad.value = ''
-                selectHorario.value = ''
-
+                alert("Ahora crea tu nueva reserva")
+                carritoTemporal = { fecha: inputFecha.value } // 🔥 reinicia carrito
                 cargarReservaUsuario()
-
-            }catch(err){
+            } catch(err){
                 console.error(err)
                 alert("Error al modificar")
             }
-
         })
 
         // CANCELAR
         document.getElementById('cancelar-reserva').addEventListener('click', async ()=>{
-
             if(confirm('¿Cancelar tu reserva?')){
-
                 const { error } = await supabase
-                .from('reservas')
-                .delete()
-                .eq('id', r.id)
-
+                    .from('reservas')
+                    .delete()
+                    .eq('id', r.id)
                 if(error){
                     alert('Error al cancelar')
-                }else{
+                } else {
+                    carritoTemporal = { fecha: inputFecha.value } // 🔥 reinicia carrito
                     cargarReservaUsuario()
                 }
-
             }
-
         })
 
         const li = document.createElement('li')
-        li.textContent = `Variedad: ${r.variedad} - ${r.dosis}g - ${r.horario}`
+        li.textContent = `Fecha: ${r.fecha} - ${r.variedad} - ${r.dosis}g - ${r.horario}`
         ulReservas.appendChild(li)
 
-    }catch(err){
+    } catch(err){
         console.error("Error cargando reservas:", err)
     }
-
 }
 
-// Eventos selects
-selectVariedad.addEventListener('change', ()=>{
-    carritoTemporal.variedad = selectVariedad.value
-})
-
-selectCantidad.addEventListener('change', ()=>{
-    carritoTemporal.dosis = selectCantidad.value
-})
-
-selectHorario.addEventListener('change', ()=>{
-    carritoTemporal.horario = selectHorario.value
-})
+// Eventos selects y fecha
+selectVariedad.addEventListener('change', ()=>{ carritoTemporal.variedad = selectVariedad.value })
+selectCantidad.addEventListener('change', ()=>{ carritoTemporal.dosis = selectCantidad.value })
+selectHorario.addEventListener('change', ()=>{ carritoTemporal.horario = selectHorario.value })
+inputFecha.addEventListener('change', ()=>{ carritoTemporal.fecha = inputFecha.value }) // 🔥 sincroniza siempre
 
 // Init
 cargarReservaUsuario()
