@@ -75,6 +75,47 @@ async function verificarCupos(fecha, horario){
     return data.length
 }
 
+// 🔥 Actualizar horarios disponibles dinámicamente
+async function actualizarHorariosDisponibles(fecha) {
+    // Habilitar todos los horarios primero
+    Array.from(selectHorario.options).forEach(opt => {
+        opt.disabled = false
+        opt.textContent = opt.value // Reset texto
+    })
+
+    // Obtener reservas de la fecha
+    const { data, error } = await supabase
+        .from('reservas')
+        .select('*')
+        .eq('fecha', fecha)
+
+    if(error){
+        console.error("Error al consultar reservas para actualizar horarios:", error)
+        return
+    }
+
+    // Contar cupos por horario
+    const cuposPorHorario = {}
+    data.forEach(r => {
+        if(!cuposPorHorario[r.horario]) cuposPorHorario[r.horario] = 0
+        cuposPorHorario[r.horario]++
+    })
+
+    // Deshabilitar horarios completos y cambiar texto
+    Array.from(selectHorario.options).forEach(opt => {
+        if(cuposPorHorario[opt.value] >= 4){
+            opt.disabled = true
+            opt.textContent = `${opt.value} (completo)`
+        }
+    })
+
+    // Si el horario seleccionado ya no está disponible, resetear
+    if(selectHorario.value && selectHorario.options[selectHorario.selectedIndex].disabled){
+        selectHorario.value = ''
+        carritoTemporal.horario = ''
+    }
+}
+
 // Guardar reserva
 document.getElementById('form-reserva').addEventListener('submit', async e => {
     e.preventDefault()
@@ -117,6 +158,9 @@ document.getElementById('form-reserva').addEventListener('submit', async e => {
 
         modal.style.display = 'flex'
         setTimeout(() => { cargarReservaUsuario() }, 300)
+
+        // 🔥 Actualizar horarios disponibles luego de crear reserva
+        actualizarHorariosDisponibles(inputFecha.value)
 
     } catch(err){
         console.error("Error al guardar:", err)
@@ -161,9 +205,10 @@ async function cargarReservaUsuario(){
                     .delete()
                     .eq('id', r.id)
                 if(error) throw error
-                alert("Ahora crea tu nueva reserva")
+                alert("Modifica tu reserva")
                 carritoTemporal = { fecha: inputFecha.value } // 🔥 reinicia carrito
                 cargarReservaUsuario()
+                actualizarHorariosDisponibles(inputFecha.value)
             } catch(err){
                 console.error(err)
                 alert("Error al modificar")
@@ -182,6 +227,7 @@ async function cargarReservaUsuario(){
                 } else {
                     carritoTemporal = { fecha: inputFecha.value } // 🔥 reinicia carrito
                     cargarReservaUsuario()
+                    actualizarHorariosDisponibles(inputFecha.value)
                 }
             }
         })
@@ -199,7 +245,11 @@ async function cargarReservaUsuario(){
 selectVariedad.addEventListener('change', ()=>{ carritoTemporal.variedad = selectVariedad.value })
 selectCantidad.addEventListener('change', ()=>{ carritoTemporal.dosis = selectCantidad.value })
 selectHorario.addEventListener('change', ()=>{ carritoTemporal.horario = selectHorario.value })
-inputFecha.addEventListener('change', ()=>{ carritoTemporal.fecha = inputFecha.value }) // 🔥 sincroniza siempre
+inputFecha.addEventListener('change', async ()=>{
+    carritoTemporal.fecha = inputFecha.value
+    await actualizarHorariosDisponibles(inputFecha.value)
+})
 
-// Init
+// 🔥 Inicializamos al cargar la página
+actualizarHorariosDisponibles(inputFecha.value)
 cargarReservaUsuario()
