@@ -69,165 +69,180 @@ ulReservas.parentNode.insertBefore(carritoVisual, ulReservas)
 
 // Verificar cupos
 async function verificarCupos(horario){
+    const { data, error } = await supabase
+    .from('reservas')
+    .select('*')
+    .eq('horario', horario)
 
-const { data, error } = await supabase
-.from('reservas')
-.select('*')
-.eq('horario', horario)
-
-if(error) throw error
-
-return data.length
+    if(error) throw error
+    return data.length
 }
 
 // Guardar reserva
 document.getElementById('form-reserva').addEventListener('submit', async e => {
 
-e.preventDefault()
+    e.preventDefault()
 
-if(!carritoTemporal.variedad || !carritoTemporal.dosis || !carritoTemporal.horario){
-alert('Completa todos los campos antes de reservar')
-return
-}
+    if(!carritoTemporal.variedad || !carritoTemporal.dosis || !carritoTemporal.horario){
+        alert('Completa todos los campos antes de reservar')
+        return
+    }
 
-try{
+    try{
 
-// verificar si ya tiene reserva
-const { data: reservasUsuario } = await supabase
-.from('reservas')
-.select('*')
-.eq('usuario', usuario.usuario)
+        // verificar si ya tiene reserva
+        const { data: reservasUsuario } = await supabase
+        .from('reservas')
+        .select('*')
+        .eq('usuario', usuario.usuario)
 
-if(reservasUsuario.length > 0){
-alert('Ya tienes una reserva activa. Cancélala primero.')
-return
-}
+        if(reservasUsuario && reservasUsuario.length > 0){
+            alert('Ya tienes una reserva activa. Modifícala o cancélala.')
+            return
+        }
 
-const cupos = await verificarCupos(carritoTemporal.horario)
+        const cupos = await verificarCupos(carritoTemporal.horario)
 
-if(cupos >= 4){
-alert('Horario completo')
-return
-}
+        if(cupos >= 4){
+            alert('Horario completo')
+            return
+        }
 
-// 🔥 INSERT CORREGIDO
-const { error } = await supabase
-.from('reservas')
-.insert([{ usuario: usuario.usuario, ...carritoTemporal }])
+        const { error } = await supabase
+        .from('reservas')
+        .insert([{ usuario: usuario.usuario, ...carritoTemporal }])
 
-if(error) throw error
+        if(error) throw error
 
-// limpiar formulario
-carritoTemporal = {}
+        // limpiar
+        carritoTemporal = {}
+        selectVariedad.value = ''
+        selectCantidad.value = ''
+        selectHorario.value = ''
 
-selectVariedad.value = ''
-selectCantidad.value = ''
-selectHorario.value = ''
+        modal.style.display = 'flex'
 
-modal.style.display = 'flex'
+        setTimeout(() => {
+            cargarReservaUsuario()
+        }, 300)
 
-// recargar reservas
-setTimeout(() => {
-cargarReservaUsuario()
-}, 300)
-
-}catch(err){
-
-console.error("Error al guardar:", err)
-alert('Error al guardar la reserva')
-
-}
+    }catch(err){
+        console.error("Error al guardar:", err)
+        alert('Error al guardar la reserva')
+    }
 
 })
 
-// Mostrar reserva en carrito
+// Mostrar reserva
 async function cargarReservaUsuario(){
 
-try{
+    try{
 
-// 🔥 SELECT CORREGIDO
-const { data, error } = await supabase
-.from('reservas')
-.select('*')
-.eq('usuario', usuario.usuario)
+        const { data, error } = await supabase
+        .from('reservas')
+        .select('*')
+        .eq('usuario', usuario.usuario)
 
-if(error) throw error
+        if(error) throw error
 
-ulReservas.innerHTML = ''
+        ulReservas.innerHTML = ''
 
-if(data.length === 0){
+        if(data.length === 0){
 
-carritoVisual.innerHTML = `
-<strong>Mis reservas</strong><br><br>
-No tienes reservas activas
-`
+            carritoVisual.innerHTML = `
+            <strong>Mis reservas</strong><br><br>
+            No tienes reservas activas
+            `
 
-return
-}
+            return
+        }
 
-const r = data[0]
+        const r = data[0]
 
-carritoVisual.innerHTML = `
-<strong>Tu reserva activa</strong><br><br>
+        carritoVisual.innerHTML = `
+        <strong>Tu reserva activa</strong><br><br>
 
-Variedad: ${r.variedad}<br>
-Dosis: ${r.dosis}g<br>
-Horario: ${r.horario}<br><br>
+        Variedad: ${r.variedad}<br>
+        Dosis: ${r.dosis}g<br>
+        Horario: ${r.horario}<br><br>
 
-<button id="cancelar-reserva" style="
-background:#b71c1c;
-padding:8px 14px;
-border:none;
-border-radius:6px;
-color:white;
-font-weight:bold;
-cursor:pointer;
-">Cancelar reserva</button>
-`
+        <button id="editar-reserva">Modificar reserva</button>
+        <button id="cancelar-reserva">Cancelar reserva</button>
+        `
 
-document.getElementById('cancelar-reserva').addEventListener('click', async ()=>{
+        // MODIFICAR (borrar + nueva)
+        document.getElementById('editar-reserva').addEventListener('click', async ()=>{
 
-if(confirm('¿Cancelar tu reserva?')){
+            if(!confirm('Vas a modificar tu reserva actual')) return
 
-const { error } = await supabase
-.from('reservas')
-.delete()
-.eq('id', r.id)
+            try{
 
-if(error){
-alert('Error al cancelar')
-}else{
-cargarReservaUsuario()
-}
+                const { error } = await supabase
+                .from('reservas')
+                .delete()
+                .eq('id', r.id)
 
-}
+                if(error) throw error
 
-})
+                alert("Actualiza tu reserva")
 
-const li = document.createElement('li')
-li.textContent = `Variedad: ${r.variedad} - ${r.dosis}g - ${r.horario}`
-ulReservas.appendChild(li)
+                carritoTemporal = {}
 
-}catch(err){
+                selectVariedad.value = ''
+                selectCantidad.value = ''
+                selectHorario.value = ''
 
-console.error("Error cargando reservas:", err)
+                cargarReservaUsuario()
 
-}
+            }catch(err){
+                console.error(err)
+                alert("Error al modificar")
+            }
+
+        })
+
+        // CANCELAR
+        document.getElementById('cancelar-reserva').addEventListener('click', async ()=>{
+
+            if(confirm('¿Cancelar tu reserva?')){
+
+                const { error } = await supabase
+                .from('reservas')
+                .delete()
+                .eq('id', r.id)
+
+                if(error){
+                    alert('Error al cancelar')
+                }else{
+                    cargarReservaUsuario()
+                }
+
+            }
+
+        })
+
+        const li = document.createElement('li')
+        li.textContent = `Variedad: ${r.variedad} - ${r.dosis}g - ${r.horario}`
+        ulReservas.appendChild(li)
+
+    }catch(err){
+        console.error("Error cargando reservas:", err)
+    }
 
 }
 
 // Eventos selects
 selectVariedad.addEventListener('change', ()=>{
-carritoTemporal.variedad = selectVariedad.value
+    carritoTemporal.variedad = selectVariedad.value
 })
 
 selectCantidad.addEventListener('change', ()=>{
-carritoTemporal.dosis = selectCantidad.value
+    carritoTemporal.dosis = selectCantidad.value
 })
 
 selectHorario.addEventListener('change', ()=>{
-carritoTemporal.horario = selectHorario.value
+    carritoTemporal.horario = selectHorario.value
 })
 
-// Inicializar
+// Init
 cargarReservaUsuario()
