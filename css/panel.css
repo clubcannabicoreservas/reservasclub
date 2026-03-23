@@ -1,0 +1,276 @@
+/* Reset y base */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Arial', Helvetica, sans-serif;
+}
+
+body {
+    background: #0f0f0f;
+    color: #ffffff;
+    padding: 30px;
+    line-height: 1.5;
+}
+
+/* 🔥 FIX GLOBAL DESBORDE */
+.panel {
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+/* Header */
+header, .header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+#bienvenida {
+    opacity: 0.85;
+    margin-top: 5px;
+    font-size: 1.2rem;
+    font-weight: 500;
+}
+
+/* Botones generales */
+button {
+    padding: 12px 22px;
+    border: none;
+    border-radius: 8px;
+    background: #2e7d32;
+    color: #fff;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.25s ease, transform 0.2s ease;
+}
+
+button:hover {
+    background: #1b5e20;
+    transform: translateY(-2px);
+}
+
+/* Botones en header */
+header button, .header button {
+    margin: 5px;
+}
+
+/* Formulario */
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    max-width: 420px;
+    margin: 0 auto 25px auto;
+    background: #1a1a1a;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.5);
+}
+
+input, select {
+    padding: 12px;
+    border: none;
+    border-radius: 6px;
+    background: #2a2a2a;
+    color: white;
+    font-size: 0.95rem;
+}
+
+label {
+    font-size: 0.95rem;
+    margin-bottom: 5px;
+}
+
+/* Grid para tarjetas */
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 25px;
+    max-width: 950px;
+    margin: auto;
+}
+
+/* Tarjetas */
+.card {
+    background: #1a1a1a;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 0 25px rgba(0,0,0,0.4);
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.2s ease, box-shadow 0.25s ease;
+
+    /* 🔥 CLAVE */
+    width: 100%;
+    overflow: hidden;
+}
+
+.card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 0 35px rgba(0, 128, 0, 0.6);
+}
+
+/* Títulos */
+h2 {
+    margin-bottom: 18px;
+    color: #6eff6e;
+}
+
+/* Tablas */
+.table-container {
+    width: 100%;
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    min-width: 520px; /* 🔥 ajustado para mobile */
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+
+th, td {
+    padding: 12px;
+    text-align: center;
+    vertical-align: middle;
+    border-bottom: 1px solid #333;
+    font-size: 0.95rem;
+}
+
+td button {
+    display: inline-block;
+    white-space: nowrap;
+}
+
+th {
+    color: #6eff6e;
+}
+
+/* Modal de confirmación */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.7);
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: #1a1a1a;
+    padding: 25px 35px;
+    border-radius: 12px;
+    text-align: center;
+    box-shadow: 0 0 25px rgba(0,128,0,0.5);
+    color: #6eff6e;
+    font-size: 1.1rem;
+}
+
+.modal-content button {
+    margin-top: 15px;
+    background: #2e7d32;
+    padding: 10px 20px;
+}
+
+.modal-content button:hover {
+    background: #1b5e20;
+}
+
+/* ============================= */
+/* RESPONSIVE */
+/* ============================= */
+
+@media (max-width: 700px) {
+
+    body {
+        padding: 15px;
+    }
+
+    .card {
+        padding: 18px;
+    }
+
+    h1 {
+        font-size: 1.6rem;
+    }
+
+    h2 {
+        font-size: 1.3rem;
+    }
+
+    th, td {
+        padding: 10px;
+        font-size: 0.85rem;
+    }
+
+    td button {
+        padding: 8px 10px;
+        font-size: 0.8rem;
+    }
+
+    /* 🔥 HACE QUE LA TABLA USE TODO EL ANCHO REAL */
+    .table-container {
+        margin: 0 -10px;
+        padding: 0 10px;
+    }
+}
+
+/* ============================= */
+/* Carrito de reserva activa */
+/* ============================= */
+
+#carrito-visual {
+    max-width: 420px;
+    width: 100%;
+    margin: 20px auto;
+    background: linear-gradient(145deg, #1a1a1a, #121212);
+    border: 1px solid rgba(110,255,110,0.25);
+    padding: 22px;
+    border-radius: 14px;
+    box-shadow: 0 0 20px rgba(0, 255, 0, 0.15);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-height: 50px;
+    height: auto;
+    overflow: hidden;
+    animation: aparecerCarrito 0.3s ease;
+}
+
+#carrito-visual strong {
+    font-size: 1.1rem;
+    color: #6eff6e;
+}
+
+#carrito-visual button {
+    margin-top: 10px;
+    background: #b71c1c;
+}
+
+#carrito-visual button:hover {
+    background: #8e0000;
+}
+
+@keyframes aparecerCarrito {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (max-width: 480px) {
+    #carrito-visual {
+        margin: 15px;
+        padding: 15px;
+        max-width: calc(100% - 30px);
+        box-sizing: border-box;
+    }
+}

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Panel Administrador</title>
+
+<link rel="stylesheet" href="../css/panel.css">
+
+</head>
+
+<body>
+
+<div class="panel">
+
+<header class="header">
+
+<h1>Panel Administrador</h1>
+<p>Gestión de reservas del club</p>
+
+</header>
+
+<div class="card">
+
+<h2>Reservas de socios</h2>
+
+<!-- 👇 CONTENEDOR RESPONSIVE -->
+<div class="table-container">
+
+<table id="tablaReservas">
+
+<thead>
+<tr>
+<th>Socio</th>
+<th>Dosis</th>
+<th>Horario</th>
+<th>Variedad</th> 
+<th>Acción</th>
+</tr>
+</thead>
+
+<tbody>
+<!-- Se llena con JS -->
+</tbody>
+
+</table>
+
+</div>
+
+</div>
+
+<div class="card">
+
+<button onclick="cerrarSesion()">
+Cerrar sesión
+</button>
+
+</div>
+
+</div>
+
+<script type="module" src="../js/admin.js"></script>
+
+</body>
+
+</html>

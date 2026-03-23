@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Página de reservas</title>
+
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#2e7d32">
+  <link rel="stylesheet" href="./css/sytle.css">
+  <link rel="icon" href="./img/logoclub.png">
+</head>
+
+<body>
+
+  <div class="contenedor">
+
+    <img src="img/logoclub.png" alt="Logo Club" class="logo">
+
+    <form id="loginForm" class="login">
+
+      <input 
+        type="text" 
+        id="usuario" 
+        placeholder="Usuario"
+        required
+      >
+
+      <input 
+        type="password" 
+        id="password" 
+        placeholder="Contraseña"
+        required
+      >
+
+      <button type="submit">Ingresar</button>
+
+    </form>
+
+    <!-- BOTÓN INSTALAR APP -->
+    <button id="btnInstalar" style="display:none; margin-top:15px;">
+      Descargar app
+    </button>
+
+  </div>
+
+  <script>
+    // ===== SERVICE WORKER/ esto es para la app=====
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./service-worker.js')
+        .then(() => console.log("Service Worker registrado"))
+        .catch(err => console.log("Error:", err));
+    }
+
+    // ===== INSTALAR / DESCARGAR APP =====
+    const btnInstalar = document.getElementById("btnInstalar");
+    let deferredPrompt;
+
+    // Detectar iOS
+    const isiOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+
+    // Mostrar botón en iOS siempre
+    if (isiOS) {
+      btnInstalar.style.display = "block";
+      btnInstalar.innerText = "Agregar a pantalla de inicio";
+    }
+
+    // Escuchar beforeinstallprompt (Android)
+    window.addEventListener("beforeinstallprompt", (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      btnInstalar.style.display = "block";
+      btnInstalar.innerText = "Descargar app";
+    });
+
+    // Click en el botón
+    btnInstalar.addEventListener("click", async () => {
+      if (isiOS) {
+        // iOS no soporta instalación automática
+        alert("Para instalar en iPhone: toca el botón Compartir → Agregar a pantalla de inicio.");
+        return;
+      }
+
+      if (!deferredPrompt) return;
+
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === "accepted") {
+        console.log("App instalada");
+      } else {
+        console.log("Instalación cancelada");
+      }
+
+      deferredPrompt = null;
+      btnInstalar.style.display = "none";
+    });
+  </script>
+
+  <script type="module" src="./js/login.js"></script>
+
+</body>
+</html>

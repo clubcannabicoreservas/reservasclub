@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Usuario</title>
+ <link rel="stylesheet" href="../css/panel.css">
+</head>
+<body>
+    <header>
+        <h1 id="bienvenida">Bienvenido</h1>
+        <button id="logout">Cerrar sesión</button>
+        <button id="cambiar-pass">Cambiar contraseña</button>
+    </header>
+
+    <main>
+        <h2>Reservas</h2>
+        <form id="form-reserva">
+            <label for="variedad">Variedad:</label>
+            <select id="variedad" required></select>
+
+            <label for="dosis">Cantidad (gramos):</label>
+            <select id="dosis" required></select>
+
+            <label for="horario">Horario:</label>
+            <select id="horario" required></select>
+
+            <button type="submit">Reservar</button>
+        </form>
+
+        <section id="lista-reservas">
+            <h3>Mis Reservas</h3>
+            <ul id="reservas-ul"></ul>
+        </section>
+    </main>
+
+    <!-- Modal de confirmación -->
+<div id="modal-reserva" class="modal">
+    <div class="modal-content">
+        <p>¡Reserva realizada con éxito!</p>
+        <button id="cerrar-modal">Aceptar</button>
+    </div>
+</div>
+
+    <script type="module" src="../js/panel.js"></script>
+</body>
+</html>
