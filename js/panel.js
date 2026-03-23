@@ -14,7 +14,6 @@ document.getElementById('bienvenida').textContent = `Bienvenido ${usuario.usuari
 // Botones
 document.getElementById('logout').addEventListener('click', () => {
     localStorage.removeItem('usuario')
-    localStorage.removeItem('rol')
     window.location.href = '../index.html'
 })
 
@@ -71,16 +70,12 @@ ulReservas.parentNode.insertBefore(carritoVisual, ulReservas)
 // Verificar cupos
 async function verificarCupos(horario){
 
-console.log("Verificando cupos para horario:", horario)
-
 const { data, error } = await supabase
 .from('reservas')
 .select('*')
 .eq('horario', horario)
 
 if(error) throw error
-
-console.log("Reservas encontradas en ese horario:", data)
 
 return data.length
 }
@@ -89,10 +84,6 @@ return data.length
 document.getElementById('form-reserva').addEventListener('submit', async e => {
 
 e.preventDefault()
-
-console.log("Formulario enviado")
-
-console.log("Carrito temporal:", carritoTemporal)
 
 if(!carritoTemporal.variedad || !carritoTemporal.dosis || !carritoTemporal.horario){
 alert('Completa todos los campos antes de reservar')
@@ -107,8 +98,6 @@ const { data: reservasUsuario } = await supabase
 .select('*')
 .eq('usuario', usuario.usuario)
 
-console.log("Reservas actuales del usuario:", reservasUsuario)
-
 if(reservasUsuario.length > 0){
 alert('Ya tienes una reserva activa. Cancélala primero.')
 return
@@ -116,21 +105,15 @@ return
 
 const cupos = await verificarCupos(carritoTemporal.horario)
 
-console.log("Cantidad de cupos ocupados:", cupos)
-
 if(cupos >= 4){
 alert('Horario completo')
 return
 }
 
-console.log("Insertando reserva en Supabase...")
-
-const { data, error } = await supabase
+// 🔥 INSERT CORREGIDO
+const { error } = await supabase
 .from('reservas')
-.insert([{ usuario, ...carritoTemporal }])
-.select()
-
-console.log("Respuesta del insert:", data)
+.insert([{ usuario: usuario.usuario, ...carritoTemporal }])
 
 if(error) throw error
 
@@ -143,9 +126,8 @@ selectHorario.value = ''
 
 modal.style.display = 'flex'
 
-// esperar un momento y recargar reservas
+// recargar reservas
 setTimeout(() => {
-console.log("Recargando reservas del usuario...")
 cargarReservaUsuario()
 }, 300)
 
@@ -161,24 +143,19 @@ alert('Error al guardar la reserva')
 // Mostrar reserva en carrito
 async function cargarReservaUsuario(){
 
-console.log("Cargando reservas para usuario:", usuario)
-
 try{
 
+// 🔥 SELECT CORREGIDO
 const { data, error } = await supabase
 .from('reservas')
 .select('*')
-.eq('usuario', usuario)
-
-console.log("Reservas encontradas:", data)
+.eq('usuario', usuario.usuario)
 
 if(error) throw error
 
 ulReservas.innerHTML = ''
 
 if(data.length === 0){
-
-console.log("El usuario no tiene reservas")
 
 carritoVisual.innerHTML = `
 <strong>Mis reservas</strong><br><br>
@@ -189,8 +166,6 @@ return
 }
 
 const r = data[0]
-
-console.log("Reserva que se mostrará en carrito:", r)
 
 carritoVisual.innerHTML = `
 <strong>Tu reserva activa</strong><br><br>
@@ -212,8 +187,6 @@ cursor:pointer;
 
 document.getElementById('cancelar-reserva').addEventListener('click', async ()=>{
 
-console.log("Usuario intenta cancelar reserva", r.id)
-
 if(confirm('¿Cancelar tu reserva?')){
 
 const { error } = await supabase
@@ -222,10 +195,8 @@ const { error } = await supabase
 .eq('id', r.id)
 
 if(error){
-console.error("Error al cancelar:", error)
 alert('Error al cancelar')
 }else{
-console.log("Reserva eliminada")
 cargarReservaUsuario()
 }
 
@@ -248,17 +219,14 @@ console.error("Error cargando reservas:", err)
 // Eventos selects
 selectVariedad.addEventListener('change', ()=>{
 carritoTemporal.variedad = selectVariedad.value
-console.log("Variedad seleccionada:", carritoTemporal.variedad)
 })
 
 selectCantidad.addEventListener('change', ()=>{
 carritoTemporal.dosis = selectCantidad.value
-console.log("Dosis seleccionada:", carritoTemporal.dosis)
 })
 
 selectHorario.addEventListener('change', ()=>{
 carritoTemporal.horario = selectHorario.value
-console.log("Horario seleccionado:", carritoTemporal.horario)
 })
 
 // Inicializar
