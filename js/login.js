@@ -29,8 +29,7 @@ return
 }
 
 // guardar sesión
-localStorage.setItem("usuario", data.usuario)
-localStorage.setItem("rol", data.rol)
+localStorage.setItem("usuario", JSON.stringify(data))
 
 console.log("Login correcto:", data)
 

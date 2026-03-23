@@ -4,12 +4,12 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
 // Usuario
-const usuario = localStorage.getItem('usuario')
+const usuario = JSON.parse(localStorage.getItem('usuario'))
 
 console.log("Usuario en localStorage:", usuario)
 
 if (!usuario) window.location.href = '../index.html'
-document.getElementById('bienvenida').textContent = `Bienvenido ${usuario}`
+document.getElementById('bienvenida').textContent = `Bienvenido ${usuario.usuario}`
 
 // Botones
 document.getElementById('logout').addEventListener('click', () => {
@@ -105,7 +105,7 @@ try{
 const { data: reservasUsuario } = await supabase
 .from('reservas')
 .select('*')
-.eq('usuario', usuario)
+.eq('usuario', usuario.usuario)
 
 console.log("Reservas actuales del usuario:", reservasUsuario)
 
