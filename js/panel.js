@@ -5,14 +5,52 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
 // Usuario
 const usuario = JSON.parse(localStorage.getItem('usuario'))
-if (!usuario) window.location.href = '../index.html'
+
+// 🔒 VALIDACIÓN DE SESIÓN (MEJORADA)
+if (!usuario || !usuario.login) {
+    Swal.fire({
+        icon: 'error',
+        title: 'Sesión expirada',
+        text: 'Volvé a iniciar sesión'
+    }).then(() => {
+        window.location.href = '../index.html'
+    })
+}
+
+// 🔴 VALIDACIÓN EXTRA (CLAVE)
+if(!usuario.usuario){
+    Swal.fire({
+        icon: 'error',
+        title: 'Error de sesión',
+        text: 'Datos inválidos, iniciá sesión nuevamente'
+    }).then(()=>{
+        localStorage.removeItem('usuario')
+        window.location.href = '../index.html'
+    })
+}
+
+// ✅ BIENVENIDA
 document.getElementById('bienvenida').textContent = `Bienvenido ${usuario.usuario}`
 
-// Botones
-document.getElementById('logout').addEventListener('click', () => {
-    localStorage.removeItem('usuario')
-    window.location.href = '../index.html'
+// LOGOUT
+document.getElementById('logout').addEventListener('click', async () => {
+
+    const result = await Swal.fire({
+        title: '¿Cerrar sesión?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, salir',
+        cancelButtonText: 'Cancelar'
+    })
+
+    if(result.isConfirmed){
+        localStorage.removeItem('usuario')
+        window.location.href = '../index.html'
+    }
+
 })
+
+// CAMBIAR PASSWORD
 document.getElementById('cambiar-pass')?.addEventListener('click', () => {
     window.location.href = 'cambiarclave.html'
 })
@@ -37,11 +75,11 @@ const ulReservas = document.getElementById('reservas-ul')
 // Bloquear fechas pasadas
 const hoy = new Date().toISOString().split("T")[0]
 inputFecha.min = hoy
-inputFecha.value = hoy // 🔥 Inicializa fecha en el día actual
+inputFecha.value = hoy
 
 // Carrito temporal
 let carritoTemporal = {
-    fecha: inputFecha.value // 🔥 Inicializamos con la fecha de hoy
+    fecha: inputFecha.value
 }
 
 // Llenar selects
@@ -52,56 +90,45 @@ horarios.forEach(h => selectHorario.appendChild(new Option(h, h)))
 // Carrito visual
 const carritoVisual = document.createElement('div')
 carritoVisual.id = 'carrito-visual'
-carritoVisual.style.cssText = `
-max-width:420px;
-margin:20px auto;
-background:#1a1a1a;
-padding:20px;
-border-radius:12px;
-box-shadow:0 0 20px rgba(0,128,0,0.4);
-color:#6eff6e;
-font-size:0.95rem;
-`
 ulReservas.parentNode.insertBefore(carritoVisual, ulReservas)
 
-// 🔥 Verificar cupos por fecha y horario
+// 🔥 Verificar cupos
 async function verificarCupos(fecha, horario){
     const { data, error } = await supabase
         .from('reservas')
         .select('*')
         .eq('fecha', fecha)
         .eq('horario', horario)
+
     if(error) throw error
     return data.length
 }
 
-// 🔥 Actualizar horarios disponibles dinámicamente
+// 🔥 Actualizar horarios
 async function actualizarHorariosDisponibles(fecha) {
-    // Habilitar todos los horarios primero
+
     Array.from(selectHorario.options).forEach(opt => {
         opt.disabled = false
-        opt.textContent = opt.value // Reset texto
+        opt.textContent = opt.value
     })
 
-    // Obtener reservas de la fecha
     const { data, error } = await supabase
         .from('reservas')
         .select('*')
         .eq('fecha', fecha)
 
     if(error){
-        console.error("Error al consultar reservas para actualizar horarios:", error)
+        console.error(error)
         return
     }
 
-    // Contar cupos por horario
     const cuposPorHorario = {}
+
     data.forEach(r => {
         if(!cuposPorHorario[r.horario]) cuposPorHorario[r.horario] = 0
         cuposPorHorario[r.horario]++
     })
 
-    // Deshabilitar horarios completos y cambiar texto
     Array.from(selectHorario.options).forEach(opt => {
         if(cuposPorHorario[opt.value] >= 4){
             opt.disabled = true
@@ -109,78 +136,111 @@ async function actualizarHorariosDisponibles(fecha) {
         }
     })
 
-    // Si el horario seleccionado ya no está disponible, resetear
     if(selectHorario.value && selectHorario.options[selectHorario.selectedIndex].disabled){
         selectHorario.value = ''
         carritoTemporal.horario = ''
     }
 }
 
-// Guardar reserva
+// 🔥 Guardar reserva
 document.getElementById('form-reserva').addEventListener('submit', async e => {
     e.preventDefault()
 
     const { fecha, variedad, dosis, horario } = carritoTemporal
 
     if(!fecha || !variedad || !dosis || !horario){
-        alert('Completa todos los campos antes de reservar')
+        Swal.fire({
+            icon: 'warning',
+            title: 'Campos incompletos',
+            text: 'Completa todos los campos'
+        })
         return
     }
 
     try{
-        // verificar si ya tiene reserva
+
         const { data: reservasUsuario } = await supabase
             .from('reservas')
             .select('*')
             .eq('usuario', usuario.usuario)
 
         if(reservasUsuario && reservasUsuario.length > 0){
-            alert('Ya tienes una reserva activa. Modifícala o cancélala.')
+            Swal.fire({
+                icon: 'info',
+                title: 'Ya tienes una reserva',
+                text: 'Modifícala o cancélala'
+            })
             return
         }
 
         const cupos = await verificarCupos(fecha, horario)
+
         if(cupos >= 4){
-            alert('Horario completo')
+            Swal.fire({
+                icon: 'warning',
+                title: 'Horario completo'
+            })
             return
         }
+
+        Swal.fire({
+            title: 'Guardando reserva...',
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading()
+        })
 
         const { error } = await supabase
             .from('reservas')
             .insert([{ usuario: usuario.usuario, ...carritoTemporal }])
+
+        Swal.close()
+
         if(error) throw error
 
-        // limpiar carrito temporal y selects
-        carritoTemporal = { fecha: inputFecha.value } // 🔥 mantiene la fecha actual
+        carritoTemporal = { fecha: inputFecha.value }
         selectVariedad.value = ''
         selectCantidad.value = ''
         selectHorario.value = ''
 
         modal.style.display = 'flex'
-        setTimeout(() => { cargarReservaUsuario() }, 300)
 
-        // 🔥 Actualizar horarios disponibles luego de crear reserva
+        Swal.fire({
+            icon: 'success',
+            title: 'Reserva creada',
+            timer: 1500,
+            showConfirmButton: false
+        })
+
+        setTimeout(() => { cargarReservaUsuario() }, 300)
         actualizarHorariosDisponibles(inputFecha.value)
 
     } catch(err){
-        console.error("Error al guardar:", err)
-        alert('Error al guardar la reserva')
+        console.error(err)
+
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'No se pudo guardar la reserva'
+        })
     }
 })
 
-// Mostrar reserva
+// 🔥 Mostrar reserva
 async function cargarReservaUsuario(){
+
     try{
+
         const { data, error } = await supabase
             .from('reservas')
             .select('*')
             .eq('usuario', usuario.usuario)
+
         if(error) throw error
 
         ulReservas.innerHTML = ''
 
         if(data.length === 0){
-            carritoVisual.innerHTML = `<strong>Mis reservas</strong><br><br>No tienes reservas activas`
+            carritoVisual.innerHTML = `<strong>No tienes reservas activas</strong>`
             return
         }
 
@@ -192,64 +252,74 @@ async function cargarReservaUsuario(){
         Variedad: ${r.variedad}<br>
         Dosis: ${r.dosis}g<br>
         Horario: ${r.horario}<br><br>
-        <button id="editar-reserva">Modificar reserva</button>
-        <button id="cancelar-reserva">Cancelar reserva</button>
+        <button id="editar-reserva">Modificar</button>
+        <button id="cancelar-reserva">Cancelar</button>
         `
 
-        // MODIFICAR
         document.getElementById('editar-reserva').addEventListener('click', async ()=>{
-            if(!confirm('Vas a modificar tu reserva actual')) return
-            try{
-                const { error } = await supabase
-                    .from('reservas')
-                    .delete()
-                    .eq('id', r.id)
-                if(error) throw error
-                alert("Modifica tu reserva")
-                carritoTemporal = { fecha: inputFecha.value } // 🔥 reinicia carrito
-                cargarReservaUsuario()
-                actualizarHorariosDisponibles(inputFecha.value)
-            } catch(err){
-                console.error(err)
-                alert("Error al modificar")
-            }
+
+            const result = await Swal.fire({
+                title: 'Modificar reserva',
+                text: 'Se eliminará la actual',
+                icon: 'warning',
+                showCancelButton: true
+            })
+
+            if(!result.isConfirmed) return
+
+            await supabase.from('reservas').delete().eq('id', r.id)
+
+            Swal.fire({
+                icon: 'success',
+                title: 'Ahora podés crear una nueva',
+                timer: 1500,
+                showConfirmButton: false
+            })
+
+            carritoTemporal = { fecha: inputFecha.value }
+            cargarReservaUsuario()
+            actualizarHorariosDisponibles(inputFecha.value)
         })
 
-        // CANCELAR
         document.getElementById('cancelar-reserva').addEventListener('click', async ()=>{
-            if(confirm('¿Cancelar tu reserva?')){
-                const { error } = await supabase
-                    .from('reservas')
-                    .delete()
-                    .eq('id', r.id)
-                if(error){
-                    alert('Error al cancelar')
-                } else {
-                    carritoTemporal = { fecha: inputFecha.value } // 🔥 reinicia carrito
-                    cargarReservaUsuario()
-                    actualizarHorariosDisponibles(inputFecha.value)
-                }
-            }
-        })
 
-        const li = document.createElement('li')
-        li.textContent = `Fecha: ${r.fecha} - ${r.variedad} - ${r.dosis}g - ${r.horario}`
-        ulReservas.appendChild(li)
+            const result = await Swal.fire({
+                title: '¿Cancelar reserva?',
+                icon: 'warning',
+                showCancelButton: true
+            })
+
+            if(!result.isConfirmed) return
+
+            await supabase.from('reservas').delete().eq('id', r.id)
+
+            Swal.fire({
+                icon: 'success',
+                title: 'Reserva cancelada',
+                timer: 1500,
+                showConfirmButton: false
+            })
+
+            carritoTemporal = { fecha: inputFecha.value }
+            cargarReservaUsuario()
+            actualizarHorariosDisponibles(inputFecha.value)
+        })
 
     } catch(err){
-        console.error("Error cargando reservas:", err)
+        console.error(err)
     }
 }
 
-// Eventos selects y fecha
+// Eventos
 selectVariedad.addEventListener('change', ()=>{ carritoTemporal.variedad = selectVariedad.value })
 selectCantidad.addEventListener('change', ()=>{ carritoTemporal.dosis = selectCantidad.value })
 selectHorario.addEventListener('change', ()=>{ carritoTemporal.horario = selectHorario.value })
+
 inputFecha.addEventListener('change', async ()=>{
     carritoTemporal.fecha = inputFecha.value
     await actualizarHorariosDisponibles(inputFecha.value)
 })
 
-// 🔥 Inicializamos al cargar la página
+// Inicializar
 actualizarHorariosDisponibles(inputFecha.value)
 cargarReservaUsuario()

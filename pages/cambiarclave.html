@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="es">
 
 <head>
@@ -27,22 +26,26 @@
 <form id="formCambiarClave">
 
 <label>Nueva contraseña</label>
-<input
-type="password"
-id="nuevaPassword"
-placeholder="Nueva contraseña"
-required
-
->
+<div class="input-password">
+  <input
+    type="password"
+    id="nuevaPassword"
+    placeholder="Nueva contraseña"
+    required
+  >
+  <span id="toggleNueva" class="toggle-password">👁</span>
+</div>
 
 <label>Confirmar contraseña</label>
-<input
-type="password"
-id="confirmarPassword"
-placeholder="Confirmar contraseña"
-required
-
->
+<div class="input-password">
+  <input
+    type="password"
+    id="confirmarPassword"
+    placeholder="Confirmar contraseña"
+    required
+  >
+  <span id="toggleConfirmar" class="toggle-password">👁</span>
+</div>
 
 <button type="submit">
 Guardar nueva contraseña
@@ -54,6 +57,7 @@ Guardar nueva contraseña
 
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script type="module" src="../js/cambiarclave.js"></script>
 
 </body>

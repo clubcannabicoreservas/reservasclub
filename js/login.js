@@ -5,58 +5,96 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
 const formulario = document.getElementById("loginForm")
 
+// 👁 MOSTRAR / OCULTAR PASSWORD
+const passwordInput = document.getElementById("password")
+const togglePassword = document.getElementById("togglePassword")
+
+togglePassword.addEventListener("click", () => {
+  passwordInput.type = passwordInput.type === "password" ? "text" : "password"
+})
+
+// 🚀 LOGIN
 formulario.addEventListener("submit", async function(e){
 
-e.preventDefault()
+  e.preventDefault()
 
-const usuarioIngresado = document.getElementById("usuario").value
-const passwordIngresado = document.getElementById("password").value
+  const usuarioIngresado = document.getElementById("usuario").value.trim()
+  const passwordIngresado = document.getElementById("password").value.trim()
 
-try{
+  if(!usuarioIngresado || !passwordIngresado){
+    Swal.fire({
+      icon: 'warning',
+      title: 'Campos incompletos',
+      text: 'Ingresá usuario y contraseña'
+    })
+    return
+  }
 
-const { data, error } = await supabase
-.from("usuarios")
-.select("*")
-.eq("usuario", usuarioIngresado)
-.eq("password", passwordIngresado)
-.single()
+  try{
 
-if(error || !data){
+    Swal.fire({
+      title: 'Ingresando...',
+      text: 'Verificando datos',
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading()
+    })
 
-alert("Usuario o contraseña incorrectos")
-return
+    const { data, error } = await supabase
+      .from("usuarios")
+      .select("id, rol, cambiar_password")
+      .eq("usuario", usuarioIngresado)
+      .eq("password", passwordIngresado)
+      .single()
 
-}
+    Swal.close()
 
-// guardar sesión
-localStorage.setItem("usuario", JSON.stringify(data))
+    if(error || !data){
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Usuario o contraseña incorrectos'
+      })
+      return
+    }
 
-console.log("Login correcto:", data)
+    // 🔥 FIX CLAVE
+    localStorage.setItem("usuario", JSON.stringify({
+      id: data.id,
+      usuario: usuarioIngresado,
+      rol: data.rol,
+      cambiar_password: data.cambiar_password,
+      login: true
+    }))
 
-// verificar si debe cambiar contraseña
-if(data.cambiar_password){
+    await Swal.fire({
+      icon: 'success',
+      title: 'Bienvenido',
+      text: 'Acceso correcto',
+      timer: 1200,
+      showConfirmButton: false
+    })
 
-window.location.href = "pages/cambiarclave.html"
-return
+    if(data.cambiar_password){
+      window.location.href = "pages/cambiarclave.html"
+      return
+    }
 
-}
+    if(data.rol === "admin"){
+      window.location.href = "pages/admin.html"
+    } else {
+      window.location.href = "pages/panel.html"
+    }
 
-// redirección según rol
-if(data.rol === "admin"){
+  } catch(err){
 
-window.location.href = "pages/admin.html"
+    console.error("Error en login:", err)
 
-}else{
+    Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: 'No se pudo iniciar sesión'
+    })
 
-window.location.href = "pages/panel.html"
-
-}
-
-}catch(err){
-
-console.error("Error en login:", err)
-alert("Error al iniciar sesión")
-
-}
+  }
 
 })

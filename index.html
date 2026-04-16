@@ -8,7 +8,7 @@
 
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#2e7d32">
-  <link rel="stylesheet" href="./css/sytle.css">
+  <link rel="stylesheet" href="./css/style.css">
   <link rel="icon" href="./img/logoclub.png">
 </head>
 
@@ -27,12 +27,15 @@
         required
       >
 
-      <input 
-        type="password" 
-        id="password" 
-        placeholder="Contraseña"
-        required
-      >
+      <div class="input-password">
+  <input 
+    type="password" 
+    id="password" 
+    placeholder="Contraseña"
+    required
+  >
+  <span id="togglePassword" class="toggle-password">👁</span>
+</div>
 
       <button type="submit">Ingresar</button>
 
@@ -96,7 +99,7 @@
       btnInstalar.style.display = "none";
     });
   </script>
-
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script type="module" src="./js/login.js"></script>
 
 </body>

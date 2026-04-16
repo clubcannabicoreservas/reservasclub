@@ -5,73 +5,158 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
 const tbody = document.querySelector("#tablaReservas tbody")
 
-async function mostrarReservas(){
+// 🔴 validar sesión admin
+const usuario = JSON.parse(localStorage.getItem("usuario"))
+
+if (!usuario || usuario.rol !== "admin") {
+    Swal.fire({
+        icon: 'error',
+        title: 'Acceso denegado',
+        text: 'No tenés permisos para entrar aquí'
+    }).then(() => {
+        window.location.href = "../index.html"
+    })
+}
+
+// 🔥 cargar reservas
+async function mostrarReservas() {
 
     tbody.innerHTML = ""
 
-    try{
+    try {
+
+        Swal.fire({
+            title: 'Cargando reservas...',
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading()
+        })
 
         const { data, error } = await supabase
-        .from('reservas')
-        .select('*')
-        .order('horario', { ascending: true })
+            .from('reservas')
+            .select('*')
+            .order('fecha', { ascending: true })
 
-        if(error) throw error
+        Swal.close()
+
+        if (error) throw error
+
+        if (!data || data.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5">No hay reservas</td>
+                </tr>
+            `
+            return
+        }
 
         data.forEach((reserva) => {
 
             const fila = document.createElement("tr")
 
             fila.innerHTML = `
-                <td data-label="Socio">${reserva.usuario}</td>
-                <td data-label="Dosis">${reserva.dosis}</td>
-                <td data-label="Horario">${reserva.horario}</td>
-                <td data-label="Variedad">${reserva.variedad}</td>
-                <td data-label="Acción">
-                    <button onclick="eliminarReserva('${reserva.id}')">
+                <td>${reserva.usuario}</td>
+                <td>${reserva.dosis}</td>
+                <td>${reserva.horario}</td>
+                <td>${reserva.variedad}</td>
+                <td>
+                    <button class="btnEliminar" data-id="${reserva.id}">
                         Eliminar
                     </button>
                 </td>
             `
 
             tbody.appendChild(fila)
-
         })
 
-    }catch(err){
-        console.error("Error cargando reservas:", err)
-    }
+        // eventos eliminar
+        document.querySelectorAll(".btnEliminar").forEach(btn => {
+            btn.addEventListener("click", () => {
+                eliminarReserva(btn.dataset.id)
+            })
+        })
 
+    } catch (err) {
+        console.error(err)
+
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'No se pudieron cargar las reservas'
+        })
+    }
 }
 
-async function eliminarReserva(id){
+// 🔥 eliminar reserva
+async function eliminarReserva(id) {
 
-    if(!confirm("¿Eliminar esta reserva?")) return
+    const result = await Swal.fire({
+        title: '¿Eliminar reserva?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#2e7d32',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Sí, eliminar'
+    })
 
-    try{
+    if (!result.isConfirmed) return
+
+    try {
+
+        Swal.fire({
+            title: 'Eliminando...',
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading()
+        })
 
         const { error } = await supabase
-        .from('reservas')
-        .delete()
-        .eq('id', id)
+            .from('reservas')
+            .delete()
+            .eq('id', id)
 
-        if(error) throw error
+        Swal.close()
+
+        if (error) throw error
+
+        Swal.fire({
+            icon: 'success',
+            title: 'Eliminado',
+            timer: 1200,
+            showConfirmButton: false
+        })
 
         mostrarReservas()
 
-    }catch(err){
-        console.error("Error eliminando reserva:", err)
+    } catch (err) {
+        console.error(err)
+
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'No se pudo eliminar la reserva'
+        })
     }
-
 }
 
-function cerrarSesion(){
-    localStorage.removeItem("usuario")
-    localStorage.removeItem("rol")
-    window.location.href = "../index.html"
+// 🔥 cerrar sesión
+function cerrarSesion() {
+
+    Swal.fire({
+        title: '¿Cerrar sesión?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, salir',
+        cancelButtonText: 'Cancelar'
+    }).then(result => {
+
+        if (result.isConfirmed) {
+            localStorage.removeItem("usuario")
+            window.location.href = "../index.html"
+        }
+
+    })
 }
 
-window.eliminarReserva = eliminarReserva
 window.cerrarSesion = cerrarSesion
 
+// 🚀 init
 mostrarReservas()
